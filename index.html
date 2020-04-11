@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="Access-Control-Allow-Origin" content="*" />
-  <title>単語帳</title>
+  <title>Vue Vocabulary Book</title>
   <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
@@ -25,9 +25,9 @@
   <v-app>
     <v-content>
       <v-container>
-        <v-btn @click="showDialog = true" color="light-blue">設定</v-btn>
-        <v-btn @click="getRandom()" color="green">ランダムソート</v-btn>
-        <v-btn @click="showSheetDialog = true" color="light-green">Google Sheet設定</v-btn>
+        <v-btn @click="showDialog = true" color="light-blue">Setting</v-btn>
+        <v-btn @click="getRandom()" color="green">Random Sort</v-btn>
+        <v-btn @click="showSheetDialog = true" color="light-green">Setting of Google Sheet</v-btn>
         <v-pagination
             v-model="currentPage"
             :length="pageLength"
@@ -50,30 +50,30 @@
       </v-container>
       <v-dialog persistent v-model="showDialog" width="800">
         <v-card>
-          <v-card-title>設定</v-card-title>
+          <v-card-title>Setting</v-card-title>
           <v-card-text>
             <v-row>
               <v-col cols="12" sm="4" class="py-0">
                 <v-switch
                     v-model="showEnglish"
-                    label="英語を表示する"
+                    label="Show vocabulary"
                 />
               </v-col>
               <v-col cols="12" sm="4" class="py-0">
                 <v-switch
                     v-model="showChinese"
-                    label="中国語を表示する"
+                    label="Show the meaning"
                 />
               </v-col>
               <v-col cols="12" sm="4" class="py-0">
                 <v-switch
                     v-model="showSentence"
-                    label="例文を表示する"
+                    label="Show "
                 />
               </v-col>
               <v-col cols="12" class="py-0">
                 <v-select
-                    label="各ページ単語表示数"
+                    label="Per Page"
                     v-model="showNumber"
                     :items="numberOptions"
                 />
@@ -81,14 +81,14 @@
               <v-col cols="4">
                 <v-text-field
                     v-model="from"
-                    label="何番から"
+                    label="From Nth vocabulary"
                     type="number"
                 />
               </v-col>
               <v-col cols="4">
                 <v-text-field
                     v-model="numbers"
-                    label="単語数"
+                    label="Number of vocabularies"
                     type="number"
                 />
               </v-col>
@@ -96,7 +96,7 @@
           </v-card-text>
           <v-card-actions>
             <v-col cols="12">
-              <v-btn color="light-blue" @click="showDialog = false">OK</v-btn>
+              <v-btn color="light-blue" @click="changeSetting">OK</v-btn>
             </v-col>
           </v-card-actions>
         </v-card>
@@ -106,7 +106,7 @@
           <v-btn text icon @click="showSheetDialog = false" class="c-close">
             <v-icon>mdi-close</v-icon>
           </v-btn>
-          <v-card-title>Google Sheet設定</v-card-title>
+          <v-card-title>Google Sheet Setting</v-card-title>
           <v-card-text>
             <v-row>
               <v-col cols="12">
@@ -131,7 +131,7 @@
           </v-card-text>
           <v-card-actions>
             <v-col cols="12">
-              <v-btn color="light-blue" @click="readSheet()">連携する</v-btn>
+              <v-btn color="light-blue" @click="readSheet()">Get Data</v-btn>
             </v-col>
           </v-card-actions>
         </v-card>
@@ -246,12 +246,16 @@
           vm.getRandom()
           vm.showSheetDialog = false
         }, error => {
-          vm.showAlert('連携失敗')
+          vm.showAlert('Failed to get data from google sheet!')
           console.log(error)
         }).catch(err => {
-          vm.showAlert('連携失敗')
+          vm.showAlert('Failed to get data from google sheet!')
           console.log(err)
         })
+      },
+      changeSetting() {
+        this.getRandom()
+        this.showDialog = false
       },
       showAlert(text) {
         this.alert = {
@@ -266,15 +270,15 @@
         },
         deep: true
       },
-      showEnglish() {
-        this.getRandom()
-      },
-      showChinese() {
-        this.getRandom()
-      },
-      showSentence() {
-        this.getRandom()
-      }
+      // showEnglish() {
+      //   this.getRandom()
+      // },
+      // showChinese() {
+      //   this.getRandom()
+      // },
+      // showSentence() {
+      //   this.getRandom()
+      // }
     }
   })
 </script>
