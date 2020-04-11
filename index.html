@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Access-Control-Allow-Origin" content="*" />
+  <title>単語帳</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+  <style>
+    .c-close {
+      position: absolute !important;
+      top: 5px;
+      right: 5px;
+    }
+    .c-close:hover {
+      transform: rotate(90deg);
+      transition: all .1s;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <v-app>
+    <v-content>
+      <v-container>
+        <v-btn @click="showDialog = true" color="light-blue">設定</v-btn>
+        <v-btn @click="getRandom()" color="green">ランダムソート</v-btn>
+        <v-btn @click="showSheetDialog = true" color="light-green">Google Sheet設定</v-btn>
+        <v-pagination
+            v-model="currentPage"
+            :length="pageLength"
+            :total-visible="7"
+        ></v-pagination>
+        <span class="caption">{{ paginationText[0] }}</span>
+        <v-card v-for="(r, i) in pageResults" :key="'r' + i" class="mt-3">
+          <v-card-title>
+            <v-btn small icon @click="changeShow(realIndex(i), 'showEnglish')"><v-icon>{{ r.showEnglish ? 'mdi-eye-off' : 'mdi-eye' }}</v-icon></v-btn>
+            <span v-show="r.showEnglish">{{ r.english }}</span>
+            <span class="ml-2 mr-2"> | </span>
+            <span v-show="r.showEnglish">{{ r.kana }}</span>
+          </v-card-title>
+          <v-card-text>
+            <v-btn small icon @click="changeShow(realIndex(i), 'showChinese')"><v-icon>{{ r.showChinese ? 'mdi-eye-off' : 'mdi-eye' }}</v-icon></v-btn>
+            <span v-show="r.showChinese" class="body-1">{{ r.chinese }}</span><br />
+            <div class="body-2 mt-2" v-show="!isEmpty(r.sentence) && r.showChinese">例文： {{ r.sentence }}</div>
+          </v-card-text>
+        </v-card>
+      </v-container>
+      <v-dialog persistent v-model="showDialog" width="800">
+        <v-card>
+          <v-card-title>設定</v-card-title>
+          <v-card-text>
+            <v-row>
+              <v-col cols="12" sm="4" class="py-0">
+                <v-switch
+                    v-model="showEnglish"
+                    label="英語を表示する"
+                />
+              </v-col>
+              <v-col cols="12" sm="4" class="py-0">
+                <v-switch
+                    v-model="showChinese"
+                    label="中国語を表示する"
+                />
+              </v-col>
+              <v-col cols="12" sm="4" class="py-0">
+                <v-switch
+                    v-model="showSentence"
+                    label="例文を表示する"
+                />
+              </v-col>
+              <v-col cols="12" class="py-0">
+                <v-select
+                    label="各ページ単語表示数"
+                    v-model="showNumber"
+                    :items="numberOptions"
+                />
+              </v-col>
+              <v-col cols="4">
+                <v-text-field
+                    v-model="from"
+                    label="何番から"
+                    type="number"
+                />
+              </v-col>
+              <v-col cols="4">
+                <v-text-field
+                    v-model="numbers"
+                    label="単語数"
+                    type="number"
+                />
+              </v-col>
+            </v-row>
+          </v-card-text>
+          <v-card-actions>
+            <v-col cols="12">
+              <v-btn color="light-blue" @click="showDialog = false">OK</v-btn>
+            </v-col>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+      <v-dialog persistent v-model="showSheetDialog" width="800">
+        <v-card>
+          <v-btn text icon @click="showSheetDialog = false" class="c-close">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+          <v-card-title>Google Sheet設定</v-card-title>
+          <v-card-text>
+            <v-row>
+              <v-col cols="12">
+                <v-text-field
+                    v-model="spreadsheetId"
+                    label="Sheet ID"
+                />
+              </v-col>
+              <v-col cols="12">
+                <v-text-field
+                    v-model="sheetName"
+                    label="Sheet ID"
+                />
+              </v-col>
+              <v-col cols="12">
+                <v-text-field
+                    v-model="apiKey"
+                    label="API key"
+                />
+              </v-col>
+            </v-row>
+          </v-card-text>
+          <v-card-actions>
+            <v-col cols="12">
+              <v-btn color="light-blue" @click="readSheet()">連携する</v-btn>
+            </v-col>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+    </v-content>
+    <v-snackbar
+        v-model="alert.show"
+        left
+    >
+      {{ alert.text }}
+      <v-btn color="pink" flat @click="alert.show = false">Close</v-btn>
+    </v-snackbar>
+  </v-app>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script>
+  new Vue({
+    el: '#app',
+    vuetify: new Vuetify({
+      theme: {
+        dark: true,
+      },
+    }),
+    computed: {
+      pageLength() {
+        let len = parseInt(this.results.length / this.showNumber)
+        if (this.results.length % this.showNumber > 0) len += 1
+        return len
+      },
+      paginationText() {
+        let total = this.results.length
+        let from = (this.currentPage -1) * this.showNumber
+        let to = total > this.currentPage * this.showNumber ? this.currentPage * this.showNumber : total
+        return [`${from + 1}-${to} of ${total}`, from, to]
+      },
+      pageResults() {
+        return this.results.slice(this.paginationText[1], this.paginationText[2])
+      }
+    },
+    data() {
+      return {
+        showSheetDialog: true,
+        showDialog: false,
+        showEnglish: true,
+        showChinese: false,
+        showSentence: false,
+        showNumber: 10,
+        words: [],
+        results: [],
+        numberOptions: [10, 25, 100],
+        currentPage: 1,
+        from: 1,
+        numbers: 0,
+        spreadsheetId: '',
+        sheetName: '',
+        apiKey: '',
+        alert: {
+          show: false,
+          text: ''
+        },
+      }
+    },
+    methods: {
+      getRandom() {
+        let selectedWords = []
+        if (this.numbers > 0 && this.from > 0 && this.from < this.words.length) {
+          selectedWords = this.words.slice((this.from - 1), (parseInt(this.from) + parseInt(this.numbers) - 1))
+        } else {
+          selectedWords = this.words.slice(0)
+        }
+        let items = selectedWords.sort(() => 0.5 - Math.random())
+        let results = []
+        items.forEach(item => {
+          results.push({
+            showEnglish: this.showEnglish,
+            showChinese: this.showChinese,
+            showSentence: this.showSentence,
+            english: item[0],
+            kana: item[1],
+            chinese: item[2],
+            sentence: item[3],
+          })
+        })
+        this.results = results
+      },
+      changeShow(index, key) {
+        this.results[index][key] = !this.results[index][key]
+      },
+      isEmpty: function(s) {
+        return s === undefined || s === null || s === ''
+      },
+      shuffle(a) {
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1))
+              [a[i], a[j]] = [a[j], a[i]]
+        }
+        return a
+      },
+      realIndex(i) {
+        return this.showNumber * (this.currentPage - 1) + i
+      },
+      readSheet() {
+        let vm = this
+        axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${vm.spreadsheetId}/values/${vm.sheetName}!A1:D99999?key=${vm.apiKey}`, {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }).then(res => {
+          vm.words = res.data.values
+          vm.getRandom()
+          vm.showSheetDialog = false
+        }, error => {
+          vm.showAlert('連携失敗')
+          console.log(error)
+        }).catch(err => {
+          vm.showAlert('連携失敗')
+          console.log(err)
+        })
+      },
+      showAlert(text) {
+        this.alert = {
+          show: true,
+          text: text
+        }
+      },
+    },
+    watch: {
+      'results': {
+        handler: function (val, oldVal) {
+        },
+        deep: true
+      },
+      showEnglish() {
+        this.getRandom()
+      },
+      showChinese() {
+        this.getRandom()
+      },
+      showSentence() {
+        this.getRandom()
+      }
+    }
+  })
+</script>
+</body>
+</html>
