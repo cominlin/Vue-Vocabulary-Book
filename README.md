@@ -16,7 +16,6 @@ https://developers.google.com/sheets/api/samples/reading
 ### About API Key
 https://developers.google.com/sheets/api/guides/authorizing
 
-
 ###Content of Sheet：
 ```
 A column : Vocabulary
