@@ -10,8 +10,17 @@ Axios
 Google sheets api
 
 
-# About Sheet ID & Sheet name
+### About Sheet ID & Sheet name
 https://developers.google.com/sheets/api/samples/reading
 
-# About API Key
+### About API Key
 https://developers.google.com/sheets/api/guides/authorizing
+
+
+###Content of Sheet：
+```
+A column : Vocabulary
+B column : Pronunciation
+C column : The meaning of the Vocabulary
+D column : Example sentences
+```
