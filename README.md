@@ -2,8 +2,11 @@
 A tool for learning languages.
 
 Vue Js
+
 Vuetify
+
 Axios
+
 Google sheets api
 
 
